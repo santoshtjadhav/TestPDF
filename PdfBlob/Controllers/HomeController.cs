@@ -1,0 +1,117 @@
+﻿using AzureBlobLearning.Models;
+using AzureBlobLearning.Services;
+using Microsoft.AspNetCore.Mvc;
+using System;
+using System.Diagnostics;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace AzureBlobLearning.Controllers
+{
+	public class HomeController : Controller
+	{
+		private readonly IBlobService _azureBlobService;
+
+		public HomeController(IBlobService azureBlobService)
+		{
+			_azureBlobService = azureBlobService;
+		}
+
+		public async Task<ActionResult> Index()
+		{
+			try
+			{
+				var allBlobs = await _azureBlobService.ListAsync();
+				return View(allBlobs);
+			}
+			catch (Exception ex)
+			{
+				ViewData["message"] = ex.Message;
+				ViewData["trace"] = ex.StackTrace;
+				return View("Error");
+			}
+		}
+
+		[HttpPost]
+		public async Task<ActionResult> UploadAsync()
+		{
+			try
+			{
+				TempData["ErrorMessage"] = string.Empty;
+
+				var request = await HttpContext.Request.ReadFormAsync();
+				if (request.Files == null)
+				{
+					return BadRequest("Could not upload files");
+				}
+				var files = request.Files;
+				if(files.Count == 0)
+				{
+					return BadRequest("Could not upload empty files");
+				}
+
+				var result = _azureBlobService.Validate(request.Files);
+				StringBuilder stringBuilder = new StringBuilder(); 
+				foreach (var item in result)
+				{
+					stringBuilder.Append(item.ErrorMessage);
+
+
+				}
+				if (stringBuilder.Length > 0)
+				{
+					TempData["ErrorMessage"] = stringBuilder.ToString();
+					return RedirectToAction("Index");
+				}
+				await _azureBlobService.UploadAsync(files);
+				return RedirectToAction("Index");
+			}
+			catch (Exception ex)
+			{
+				ViewData["message"] = ex.Message;
+				ViewData["trace"] = ex.StackTrace;
+				return View("Error");
+			}
+		}
+
+		[HttpPost]
+		public async Task<ActionResult> DeleteImage(string fileUri)
+		{
+			try
+			{
+				await _azureBlobService.DeleteAsync(fileUri);
+				return RedirectToAction("Index");
+			}
+			catch (Exception ex)
+			{
+				ViewData["message"] = ex.Message;
+				ViewData["trace"] = ex.StackTrace;
+				return View("Error");
+			}
+		}
+
+		[HttpPost]
+		public async Task<ActionResult> DeleteAll()
+		{
+			try
+			{
+				await _azureBlobService.DeleteAllAsync();
+				return RedirectToAction("Index");
+			}
+			catch (Exception ex)
+			{
+				ViewData["message"] = ex.Message;
+				ViewData["trace"] = ex.StackTrace;
+				return View("Error");
+			}
+		}
+
+
+		
+		[ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]
+		public IActionResult Error()
+		{
+			return View(new ErrorViewModel { RequestId = Activity.Current?.Id ?? HttpContext.TraceIdentifier });
+		}
+	}
+}

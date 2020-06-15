@@ -1,0 +1,72 @@
+﻿@{
+    ViewBag.Title = "Index";
+}
+@*Header Section*@
+<div class="jumbotron">
+    <h2>Blob Storage - PDF</h2>
+
+</div>
+
+<p>@TempData["ErrorMessage"]</p>
+@using (Html.BeginForm("UploadAsync", "Home", FormMethod.Post, new { enctype = "multipart/form-data" }))
+{
+    <div class="fileUpload btn btn-primary">
+        <span>Select Files</span><input type="file" id="file" name="selectFiles" class="upload" onchange="DisplayFilesToUpload()" multiple />
+    </div>
+    <p id="FilesToUpload"></p>
+}
+
+@if (Model != null && Model.Count > 0)
+{
+<table>
+    <tr>
+        <th>File</th>
+        <th>Size</th>
+        <th>Delete</th>
+
+    </tr>
+
+
+
+    @foreach (var item in Model)
+    {
+<tr>
+    <td>@item.FileName</td>
+    <td><i class="fa fa-check">@item.FileType</i></td>
+    <td><button class="btn btn-danger" title="Delete Image" onclick="deleteImage('@item.FileLocation');" />Delete</td>
+
+</tr>
+
+    }
+
+</table>
+    using (Html.BeginForm("DeleteAll", "Home", FormMethod.Post, new { enctype = "multipart/form-data" }))
+    {
+        <div class="fileUpload btn btn-danger"><span>Delete All Files</span><input type="submit" name="deleteAll" class="upload" /></div>
+    }
+}
+<script>
+    function deleteImage(item) {
+        var url = "/Home/DeleteImage";
+        $.post(url, { FileUri: item }, function (data) {
+            window.location.href = "/Home/Index";
+        });
+    }
+
+    function DisplayFilesToUpload() {
+        var element = document.getElementById("file");
+        var html = "";
+
+        html = "<h3>Image(s) to Upload</h3>"
+        for (var i = 0; i < element.files.length; i++) {
+            html += "<strong>" + (i + 1) + "</strong>. File: ";
+            var file = element.files[i];
+            if ('name' in file) { html += file.name + " ("; }
+            if ('size' in file) { html += "size: " + file.size + " bytes)<br>"; }
+        }
+
+        html += "<div class='fileUpload btn btn-primary'><span>Upload</span><input type='submit' class='upload' value='Upload'/></div>"
+        document.getElementById("FilesToUpload").innerHTML = html;
+    }
+
+</script>
